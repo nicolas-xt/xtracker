@@ -1,0 +1,5 @@
+{
+  "name": "BTracker - Trade Control",
+  "description": "A detailed trade control application that allows you to import and analyze your trading performance by reading exported files from your trading platform.",
+  "requestFramePermissions": []
+}

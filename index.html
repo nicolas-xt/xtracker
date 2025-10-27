@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BTracker - Trade Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'b-dark': '#000000',
+              'b-dark-2': '#1A1A1A',
+              'b-border': '#2A2A2A',
+              'b-blue': '#00D0FF',
+              'b-blue-hover': '#00B8E6', // A slightly darker shade for hover
+              'b-text-1': '#c9d1d9',
+              'b-text-2': '#8b949e',
+              'b-green': '#238636',
+              'b-red': '#da3633',
+              'b-yellow': '#facc15',
+            }
+          }
+        }
+      }
+    </script>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-b-dark text-b-text-1">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

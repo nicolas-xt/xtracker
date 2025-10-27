@@ -1,0 +1,139 @@
+/* PerformanceByHourChart.css */
+
+.performance-by-hour-container {
+  background: linear-gradient(to bottom right, rgba(36, 36, 36, 0.6), rgba(42, 42, 42, 0.4));
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.performance-by-hour-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.06), transparent);
+  pointer-events: none;
+}
+
+.ph-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.ph-period-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #00D0FF;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.ph-timeline {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 0;
+}
+
+.ph-timeline-line {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background-color: rgba(128, 128, 128, 0.3);
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.ph-timeline-inner {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  z-index: 2;
+}
+
+.ph-hour-item {
+  position: relative;
+}
+
+.ph-hour-marker {
+  position: absolute;
+  top: calc(50% - 4px);
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background-color: #00D0FF;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.ph-hour-card {
+  width: 112px; /* 7rem */
+  height: 128px; /* 8rem */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  cursor: default;
+}
+
+.ph-hour-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 208, 255, 0.2);
+}
+
+.ph-hour-card.positive {
+  background-color: rgba(40, 199, 128, 0.1);
+  border: 1px solid rgba(40, 199, 128, 0.3);
+}
+
+.ph-hour-card.negative {
+  background-color: rgba(234, 57, 67, 0.1);
+  border: 1px solid rgba(234, 57, 67, 0.3);
+}
+
+.ph-hour-time {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.ph-hour-result {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.ph-hour-result.positive {
+  color: #28C780;
+}
+
+.ph-hour-result.negative {
+  color: #EA3943;
+}
+
+.ph-hour-winrate {
+  font-size: 0.75rem;
+  color: #9CA3AF;
+}
+
+.ph-hour-trades {
+  font-size: 0.75rem;
+  color: #6B7280;
+}
