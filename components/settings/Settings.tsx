@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../../types'; // Assuming User type is defined here
 import { open } from '@tauri-apps/api/dialog';
 import { readBinaryFile } from '@tauri-apps/api/fs';
-import { useSettings } from '../../src/context/SettingsContext';
+import { useSettings, Account } from '../../src/context/SettingsContext';
 
 interface SettingsProps {
   onRefresh: () => void;
@@ -22,7 +22,44 @@ export const Settings: React.FC<SettingsProps> = ({ onRefresh, user, onUpdateUse
   const [monitoredFolder, setMonitoredFolder] = useState('/Users/trader/Documents/Trades'); // Mock value
   const [csvPathBR, setCsvPathBR] = useState('/data/trades.csv');
   const [csvPathUS, setCsvPathUS] = useState('/data/us_trades.csv');
-  const { settings: contextSettings, updateSettings } = useSettings();
+  const { settings: contextSettings, updateSettings, addAccount, updateAccount, removeAccount, setActiveAccount } = useSettings();
+
+  // Account management using SettingsContext helpers
+  const handleAddAccount = () => {
+    const id = `acc_${Date.now()}`;
+    const newAccount = { id, name: `Conta ${id}`, platform: 'br', csvPath: '' } as Account;
+    try {
+      if (typeof addAccount === 'function') addAccount(newAccount);
+      else updateSettings({ accounts: [...(contextSettings?.accounts || []), newAccount] });
+    } catch (e) {
+      console.error('Failed to add account', e);
+    }
+  };
+
+  const handleRemoveAccount = (id: string) => {
+    try {
+      if (typeof removeAccount === 'function') removeAccount(id);
+      else updateSettings({ accounts: (contextSettings?.accounts || []).filter(a => a.id !== id) });
+    } catch (e) {
+      console.error('Failed to remove account', e);
+    }
+  };
+
+  const handleSelectCsvForAccount = async (id: string) => {
+    const selected = await open({ multiple: false, filters: [{ name: 'CSV', extensions: ['csv'] }] });
+    if (selected) {
+      const path = selected as string;
+      try {
+        if (typeof updateAccount === 'function') updateAccount(id, { csvPath: path });
+        else {
+          const accounts = (contextSettings?.accounts || []).map(a => a.id === id ? { ...a, csvPath: path } : a);
+          updateSettings({ accounts });
+        }
+      } catch (e) {
+        console.error('Failed to update account csvPath', e);
+      }
+    }
+  };
 
   // Selecionar arquivo CSV BR
   const handleSelectCsvBR = async () => {
@@ -178,39 +215,40 @@ function toBase64(bytes: Uint8Array) {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto p-6"> {/* Added mx-auto and p-6 for centering and padding */}
-      {/* CSV Paths Section */}
+      {/* Accounts / CSV Paths Section */}
       <div className="bg-gradient-to-br from-[#242424]/60 via-[#2A2A2A]/40 to-[#242424]/60 backdrop-blur-[20px] border border-gray-500/20 rounded-[20px] p-6 shadow-md relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/[0.06] rounded-[20px]"></div>
         <div className="absolute inset-[1px] bg-gradient-to-br from-transparent via-white/[0.02] to-transparent rounded-[19px]"></div>
         <div className="relative">
-          <h3 className="text-lg font-semibold text-white mb-4">Arquivos de Operações (CSV)</h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="csvPathBR" className="text-sm text-gray-300">Caminho do CSV Brasil</label>
-              <div className="flex gap-2">
-                <input
-                  id="csvPathBR"
-                  value={csvPathBR}
-                  onChange={e => setCsvPathBR(e.target.value)}
-                  className="flex-1 p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
-                  placeholder="/data/trades.csv"
-                />
-                <button type="button" onClick={handleSelectCsvBR} className="px-3 py-2 bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white rounded-[12px] hover:from-[#0099CC] hover:to-[#007799] transition-all">Selecionar</button>
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Contas e Pastas (CSV)</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { if (typeof setActiveAccount === 'function') setActiveAccount(undefined); }} className="px-3 py-1 text-xs rounded-md bg-gray-800 text-gray-300">Limpar seleção</button>
+              <button onClick={() => { if (typeof addAccount === 'function') addAccount({ id: `acc_${Date.now()}`, name: `Conta ${Date.now()}`, platform: 'br', csvPath: '' }); else handleAddAccount(); }} className="px-3 py-2 bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white rounded-[12px]">Adicionar Conta</button>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="csvPathUS" className="text-sm text-gray-300">Caminho do CSV EUA</label>
-              <div className="flex gap-2">
-                <input
-                  id="csvPathUS"
-                  value={csvPathUS}
-                  onChange={e => setCsvPathUS(e.target.value)}
-                  className="flex-1 p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
-                  placeholder="/data/us_trades.csv"
-                />
-                <button type="button" onClick={handleSelectCsvUS} className="px-3 py-2 bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white rounded-[12px] hover:from-[#0099CC] hover:to-[#007799] transition-all">Selecionar</button>
+          </div>
+
+          <div className="space-y-3">
+            {(contextSettings?.accounts || []).map((acc) => (
+              <div key={acc.id} className={`p-3 rounded-md border ${contextSettings?.activeAccountId === acc.id ? 'border-cyan-400 bg-cyan-900/5' : 'border-gray-600'} flex items-center justify-between` }>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <input value={acc.name} onChange={(e) => { if (typeof updateAccount === 'function') updateAccount(acc.id, { name: e.target.value }); else updateSettings({ accounts: (contextSettings?.accounts || []).map(a => a.id === acc.id ? { ...a, name: e.target.value } : a) }); }} className="bg-transparent text-white font-medium" />
+                    <select value={acc.platform || ''} onChange={(e) => { if (typeof updateAccount === 'function') updateAccount(acc.id, { platform: e.target.value }); else updateSettings({ accounts: (contextSettings?.accounts || []).map(a => a.id === acc.id ? { ...a, platform: e.target.value } : a) }); }} className="bg-[#1b1b1b] text-xs text-gray-300 p-1 rounded-md">
+                      <option value="br">BR</option>
+                      <option value="us">US</option>
+                    </select>
+                    <div className="text-xs text-gray-400">{acc.csvPath || <i>nenhum CSV</i>}</div>
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">{acc.csvPath ? acc.csvPath : 'Selecione o CSV desta conta'}</div>
+                </div>
+                <div className="flex items-center gap-2 ml-4">
+                  <button onClick={() => handleSelectCsvForAccount(acc.id)} className="px-3 py-1 bg-gray-800 text-white rounded-md text-sm">Selecionar CSV</button>
+                  <button onClick={() => { if (typeof setActiveAccount === 'function') setActiveAccount(acc.id); else updateSettings({ activeAccountId: acc.id }); }} className={`px-2 py-1 text-sm rounded-md ${contextSettings?.activeAccountId === acc.id ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-300'}`}>{contextSettings?.activeAccountId === acc.id ? 'Selecionada' : 'Selecionar'}</button>
+                  <button onClick={() => handleRemoveAccount(acc.id)} className="px-2 py-1 text-sm rounded-md bg-red-700 text-white">Excluir</button>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

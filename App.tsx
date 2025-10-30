@@ -28,8 +28,10 @@ export default function App() {
 
   // Read csv path from settings so we can load the correct CSV and allow reloading when requested
   // useTrades returns a `refetch` function used by the Dashboard "Recarregar CSV" button
-  const { settings: appSettings } = useSettings();
-  const { trades, isLoading, error, refetch } = useTrades(appSettings?.csvPathBR);
+  const { settings: appSettings, setActiveAccount } = useSettings();
+  const activeAccount = appSettings?.accounts?.find(a => a.id === appSettings?.activeAccountId);
+  const csvPathForActive = activeAccount?.csvPath ?? appSettings?.csvPathBR;
+  const { trades, isLoading, error, refetch } = useTrades(csvPathForActive);
 
   const previousPeriodTrades = useMemo(() => {
     if (!trades) return [];
@@ -270,6 +272,14 @@ export default function App() {
                 </Button>
               ))}
             </nav>
+            {/* Accounts selector */}
+            <div className="ml-4 flex items-center space-x-2">
+              {(appSettings?.accounts || []).map(acc => (
+                <button key={acc.id} onClick={() => { if (typeof setActiveAccount === 'function') setActiveAccount(acc.id); }} className={`px-4 py-1 rounded-full text-sm ${appSettings?.activeAccountId === acc.id ? 'bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
+                  {acc.name}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
