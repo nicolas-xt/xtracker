@@ -34,9 +34,9 @@ const formatDuration = (durationStr: string) => {
 };
 
 const calculateScore = (trade: Trade) => {
-  const score = trade.side === 'C' 
-    ? trade.closePrice - trade.openPrice 
-    : trade.openPrice - trade.closePrice;
+  const score = trade.result >= 0 
+    ? Math.abs(trade.closePrice - trade.openPrice)
+    : -Math.abs(trade.closePrice - trade.openPrice);
   return `${score > 0 ? '+' : ''}${score.toFixed(0)}pts`;
 };
 
@@ -68,6 +68,40 @@ export const TradesHistory: React.FC<TradesHistoryProps> = ({ trades }) => {
     return <div className="p-6 text-center text-white">Nenhum trade para exibir. Importe seus dados na aba 'Configurações'.</div>;
   }
 
+  const totalResult = trades.reduce((acc, trade) => acc + trade.result, 0);
+  const totalPoints = trades.reduce((acc, trade) => {
+    const score = trade.side === 'C' ? trade.closePrice - trade.openPrice : trade.openPrice - trade.closePrice;
+    return acc + score;
+  }, 0);
+  const averagePoints = totalPoints / (trades.length || 1);
+  
+  const totalDurationInSeconds = trades.reduce((acc, trade) => {
+    if (typeof trade.duration !== 'string') {
+      return acc;
+    }
+    
+    let totalSeconds = 0;
+    const minMatch = trade.duration.match(/(\d+)min/);
+    const secMatch = trade.duration.match(/(\d+)s/);
+
+    if (minMatch) {
+      totalSeconds += parseInt(minMatch[1], 10) * 60;
+    }
+    if (secMatch) {
+      totalSeconds += parseInt(secMatch[1], 10);
+    }
+    
+    return acc + totalSeconds;
+  }, 0);
+
+  const averageDuration = trades.length > 0 ? totalDurationInSeconds / trades.length : 0;
+
+  const formatAvgDuration = (duration: number) => {
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.round(duration % 60);
+    return `${minutes}m ${seconds}s`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -75,27 +109,27 @@ export const TradesHistory: React.FC<TradesHistoryProps> = ({ trades }) => {
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/[0.06] rounded-[20px]"></div>
           <div className="absolute inset-[1px] bg-gradient-to-br from-transparent via-white/[0.02] to-transparent rounded-[19px]"></div>
           <div className="relative text-center">
-            <p className="text-sm text-gray-400 mb-1">Eficiência MFE</p>
-            <p className="text-2xl font-semibold text-[#28C780]">85.3%</p>
-            <p className="text-xs text-gray-400 mt-1">Média do período</p>
+            <p className="text-sm text-gray-400 mb-1">Resultado no Período</p>
+            <p className={`text-2xl font-semibold ${totalResult >= 0 ? 'text-[#28C780]' : 'text-[#EA3943]'}`}>{formatCurrency(totalResult)}</p>
+            <p className="text-xs text-gray-400 mt-1">Soma dos resultados</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-[#242424]/60 via-[#2A2A2A]/40 to-[#242424]/60 backdrop-blur-[20px] border border-gray-500/20 rounded-[20px] p-6 shadow-md relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/[0.06] rounded-[20px]"></div>
           <div className="absolute inset-[1px] bg-gradient-to-br from-transparent via-white/[0.02] to-transparent rounded-[19px]"></div>
           <div className="relative text-center">
-            <p className="text-sm text-gray-400 mb-1">Eficiência MAE</p>
-            <p className="text-2xl font-semibold text-[#EA3943]">72.1%</p>
-            <p className="text-xs text-gray-400 mt-1">Controle de risco</p>
+            <p className="text-sm text-gray-400 mb-1">Resultado em Pontos</p>
+            <p className={`text-2xl font-semibold ${totalPoints >= 0 ? 'text-[#28C780]' : 'text-[#EA3943]'}`}>{totalPoints.toFixed(0)}pts</p>
+            <p className="text-xs text-gray-400 mt-1">Soma dos pontos</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-[#242424]/60 via-[#2A2A2A]/40 to-[#242424]/60 backdrop-blur-[20px] border border-gray-500/20 rounded-[20px] p-6 shadow-md relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/[0.06] rounded-[20px]"></div>
           <div className="absolute inset-[1px] bg-gradient-to-br from-transparent via-white/[0.02] to-transparent rounded-[19px]"></div>
           <div className="relative text-center">
-            <p className="text-sm text-gray-400 mb-1">R-Múltiplo</p>
-            <p className="text-2xl font-semibold text-white">2.34x</p>
-            <p className="text-xs text-gray-400 mt-1">Média das operações</p>
+            <p className="text-sm text-gray-400 mb-1">Média de Pontos</p>
+            <p className={`text-2xl font-semibold ${averagePoints >= 0 ? 'text-[#28C780]' : 'text-[#EA3943]'}`}>{averagePoints.toFixed(1)}pts</p>
+            <p className="text-xs text-gray-400 mt-1">Por operação</p>
           </div>
         </div>
         <div className="bg-gradient-to-br from-[#242424]/60 via-[#2A2A2A]/40 to-[#242424]/60 backdrop-blur-[20px] border border-gray-500/20 rounded-[20px] p-6 shadow-md relative overflow-hidden">
@@ -103,7 +137,7 @@ export const TradesHistory: React.FC<TradesHistoryProps> = ({ trades }) => {
           <div className="absolute inset-[1px] bg-gradient-to-br from-transparent via-white/[0.02] to-transparent rounded-[19px]"></div>
           <div className="relative text-center">
             <p className="text-sm text-gray-400 mb-1">Tempo Médio</p>
-            <p className="text-2xl font-semibold text-white">58min</p>
+            <p className="text-2xl font-semibold text-white">{formatAvgDuration(averageDuration)}</p>
             <p className="text-xs text-gray-400 mt-1">Duração das operações</p>
           </div>
         </div>

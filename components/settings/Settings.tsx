@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../../types'; // Assuming User type is defined here
 import { open } from '@tauri-apps/api/dialog';
 import { readBinaryFile } from '@tauri-apps/api/fs';
+import { useSettings } from '../../src/context/SettingsContext';
 
 interface SettingsProps {
   onRefresh: () => void;
@@ -19,11 +20,47 @@ export const Settings: React.FC<SettingsProps> = ({ onRefresh, user, onUpdateUse
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(true); // Assuming dark mode is default
   const [monitoredFolder, setMonitoredFolder] = useState('/Users/trader/Documents/Trades'); // Mock value
+  const [csvPathBR, setCsvPathBR] = useState('/data/trades.csv');
+  const [csvPathUS, setCsvPathUS] = useState('/data/us_trades.csv');
+  const { settings: contextSettings, updateSettings } = useSettings();
+
+  // Selecionar arquivo CSV BR
+  const handleSelectCsvBR = async () => {
+    const selected = await open({
+      multiple: false,
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    });
+    if (selected) {
+      const path = selected as string;
+      setCsvPathBR(path);
+      try {
+        updateSettings({ csvPathBR: path });
+      } catch (e) {
+        console.error('Failed to update settings context', e);
+      }
+    }
+  };
+
+  // Selecionar arquivo CSV US
+  const handleSelectCsvUS = async () => {
+    const selected = await open({
+      multiple: false,
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    });
+    if (selected) {
+      const path = selected as string;
+      setCsvPathUS(path);
+      try {
+        updateSettings({ csvPathUS: path });
+      } catch (e) {
+        console.error('Failed to update settings context', e);
+      }
+    }
+  };
   const [initialCapital, setInitialCapital] = useState(100000);
   const [monthlyGoal, setMonthlyGoal] = useState(10000);
   const [dailyLossLimit, setDailyLossLimit] = useState(1000);
-  const [overtradingThreshold, setOvertradingThreshold] = useState(2);
-  const [euphoriaThreshold, setEuphoriaThreshold] = useState(20);
+  // Removed complex goals: only monthlyGoal and dailyLossLimit should be edited in this section
 
   useEffect(() => {
     const savedAppSettings = localStorage.getItem('appSettings');
@@ -32,10 +69,11 @@ export const Settings: React.FC<SettingsProps> = ({ onRefresh, user, onUpdateUse
         setInitialCapital(settings.initialCapital || 100000);
         setMonthlyGoal(settings.monthlyGoal || 10000);
         setDailyLossLimit(settings.dailyLossLimit || 1000);
-        setOvertradingThreshold(settings.overtradingThreshold || 2);
-        setEuphoriaThreshold(settings.euphoriaThreshold || 20);
+      // legacy keys ignored here; keep minimal settings
         setIsDarkMode(settings.isDarkMode !== undefined ? settings.isDarkMode : true);
         setMonitoredFolder(settings.monitoredFolder || '/Users/trader/Documents/Trades');
+      if (settings.csvPathBR) setCsvPathBR(settings.csvPathBR);
+      if (settings.csvPathUS) setCsvPathUS(settings.csvPathUS);
     }
 
     const savedUserSettings = localStorage.getItem('userSettings');
@@ -55,16 +93,11 @@ export const Settings: React.FC<SettingsProps> = ({ onRefresh, user, onUpdateUse
   }, [user.name, user.email, user.avatar, onUpdateUser]);
 
   const handleSaveGoals = () => {
-    const settings = {
-        initialCapital,
-        monthlyGoal,
-        dailyLossLimit,
-        overtradingThreshold,
-        euphoriaThreshold,
-        isDarkMode, // Ensure these are also saved with appSettings
-        monitoredFolder, // Ensure these are also saved with appSettings
-    };
-    localStorage.setItem('appSettings', JSON.stringify(settings));
+    try {
+      updateSettings({ monthlyGoal, dailyLossLimit });
+    } catch (e) {
+      console.error('Failed to update settings', e);
+    }
     alert('Metas e limites salvos com sucesso!');
   };
 
@@ -90,17 +123,12 @@ export const Settings: React.FC<SettingsProps> = ({ onRefresh, user, onUpdateUse
   };
 
   const handleSaveSettings = () => {
-    const settings = {
-      initialCapital,
-      monthlyGoal,
-      dailyLossLimit,
-      overtradingThreshold,
-      euphoriaThreshold,
-      isDarkMode,
-      monitoredFolder,
-    };
-    localStorage.setItem('appSettings', JSON.stringify(settings));
-    console.log('Application settings saved:', { isDarkMode, monitoredFolder });
+    try {
+      updateSettings({ initialCapital, monthlyGoal, dailyLossLimit, isDarkMode, monitoredFolder, csvPathBR, csvPathUS });
+    } catch (e) {
+      console.error('Failed to update settings', e);
+    }
+    console.log('Application settings saved:', { isDarkMode, monitoredFolder, csvPathBR, csvPathUS });
     alert('Configurações salvas com sucesso!');
   };
 
@@ -140,21 +168,53 @@ function toBase64(bytes: Uint8Array) {
     });
     if (selected) {
       setMonitoredFolder(selected as string);
-      const settings = {
-        initialCapital,
-        monthlyGoal,
-        dailyLossLimit,
-        overtradingThreshold,
-        euphoriaThreshold,
-        isDarkMode,
-        monitoredFolder: selected as string,
-      };
-      localStorage.setItem('appSettings', JSON.stringify(settings));
+      try {
+        updateSettings({ monitoredFolder: selected as string });
+      } catch (e) {
+        console.error('Failed to update settings', e);
+      }
     }
   };
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto p-6"> {/* Added mx-auto and p-6 for centering and padding */}
+      {/* CSV Paths Section */}
+      <div className="bg-gradient-to-br from-[#242424]/60 via-[#2A2A2A]/40 to-[#242424]/60 backdrop-blur-[20px] border border-gray-500/20 rounded-[20px] p-6 shadow-md relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/[0.06] rounded-[20px]"></div>
+        <div className="absolute inset-[1px] bg-gradient-to-br from-transparent via-white/[0.02] to-transparent rounded-[19px]"></div>
+        <div className="relative">
+          <h3 className="text-lg font-semibold text-white mb-4">Arquivos de Operações (CSV)</h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="csvPathBR" className="text-sm text-gray-300">Caminho do CSV Brasil</label>
+              <div className="flex gap-2">
+                <input
+                  id="csvPathBR"
+                  value={csvPathBR}
+                  onChange={e => setCsvPathBR(e.target.value)}
+                  className="flex-1 p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
+                  placeholder="/data/trades.csv"
+                />
+                <button type="button" onClick={handleSelectCsvBR} className="px-3 py-2 bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white rounded-[12px] hover:from-[#0099CC] hover:to-[#007799] transition-all">Selecionar</button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="csvPathUS" className="text-sm text-gray-300">Caminho do CSV EUA</label>
+              <div className="flex gap-2">
+                <input
+                  id="csvPathUS"
+                  value={csvPathUS}
+                  onChange={e => setCsvPathUS(e.target.value)}
+                  className="flex-1 p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
+                  placeholder="/data/us_trades.csv"
+                />
+                <button type="button" onClick={handleSelectCsvUS} className="px-3 py-2 bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white rounded-[12px] hover:from-[#0099CC] hover:to-[#007799] transition-all">Selecionar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Profile Section */}
       <div className="bg-gradient-to-br from-[#242424]/60 via-[#2A2A2A]/40 to-[#242424]/60 backdrop-blur-[20px] border border-gray-500/20 rounded-[20px] p-6 shadow-md relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/[0.06] rounded-[20px]"></div>
@@ -345,19 +405,6 @@ function toBase64(bytes: Uint8Array) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="initialCapital" className="text-sm text-gray-300">Capital Inicial (R$)</label>
-                <div className="relative">
-                  <input
-                    id="initialCapital"
-                    type="number"
-                    value={initialCapital}
-                    onChange={(e) => setInitialCapital(parseFloat(e.target.value))}
-                    className="w-full p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
-                  />
-                  <div className="absolute inset-[1px] bg-gradient-to-br from-white/[0.04] to-transparent rounded-[15px] pointer-events-none"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
                 <label htmlFor="monthlyGoal" className="text-sm text-gray-300">Meta Mensal (R$)</label>
                 <div className="relative">
                   <input
@@ -371,39 +418,13 @@ function toBase64(bytes: Uint8Array) {
                 </div>
               </div>
               <div className="space-y-2">
-                <label htmlFor="dailyLossLimit" className="text-sm text-gray-300">Limite de Perda Diária (R$)</label>
+                <label htmlFor="dailyLossLimit" className="text-sm text-gray-300">Limite de Perda (R$)</label>
                 <div className="relative">
                   <input
                     id="dailyLossLimit"
                     type="number"
                     value={dailyLossLimit}
                     onChange={(e) => setDailyLossLimit(parseFloat(e.target.value))}
-                    className="w-full p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
-                  />
-                  <div className="absolute inset-[1px] bg-gradient-to-br from-white/[0.04] to-transparent rounded-[15px] pointer-events-none"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="overtradingThreshold" className="text-sm text-gray-300">Limite de Overtrading (Losses Seguidos)</label>
-                <div className="relative">
-                  <input
-                    id="overtradingThreshold"
-                    type="number"
-                    value={overtradingThreshold}
-                    onChange={(e) => setOvertradingThreshold(parseInt(e.target.value))}
-                    className="w-full p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
-                  />
-                  <div className="absolute inset-[1px] bg-gradient-to-br from-white/[0.04] to-transparent rounded-[15px] pointer-events-none"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="euphoriaThreshold" className="text-sm text-gray-300">Devolução por Euforia (%)</label>
-                <div className="relative">
-                  <input
-                    id="euphoriaThreshold"
-                    type="number"
-                    value={euphoriaThreshold}
-                    onChange={(e) => setEuphoriaThreshold(parseFloat(e.target.value))}
                     className="w-full p-3 bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 backdrop-blur-[16px] border border-gray-500/30 rounded-[16px] text-white placeholder-gray-400 focus:border-[#00D0FF]/40 focus:ring-2 focus:ring-[#00D0FF]/15 transition-all duration-300"
                   />
                   <div className="absolute inset-[1px] bg-gradient-to-br from-white/[0.04] to-transparent rounded-[15px] pointer-events-none"></div>

@@ -8,18 +8,21 @@ import { KPICard } from '../common/KPICard';
 import { useTradeAnalysis } from '../../hooks/useTradeAnalysis';
 import { BestScenarioCard } from '../behavior/BestScenarioCard';
 import { PerformanceByHourChart } from '../behavior/PerformanceByHourChart';
+import { useSettings } from '../../src/context/SettingsContext';
+import { Button } from '../ui/button';
 
 interface DashboardProps {
   stats: DetailedStats;
   trades: Trade[];
   timePeriod: string;
   selectedPeriod: string;
+  onReload?: () => void;
 }
 
 const formatCurrency = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
 const formatPercentage = (value: number) => `${(value * 100).toFixed(1).replace('.', ',')}%`;
 
-export const Dashboard: React.FC<DashboardProps> = ({ stats, trades, timePeriod, selectedPeriod }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ stats, trades, timePeriod, selectedPeriod, onReload }) => {
   if (trades.length === 0 || !stats) {
     return (
       <div className="p-6 text-center text-white">Nenhum dado de trade importado.</div>
@@ -41,12 +44,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats, trades, timePeriod,
     };
   };
 
+  const { settings } = useSettings();
+
   const kpis = [
     {
       title: 'Resultado Final',
       value: formatCurrency(stats.finalResult ?? 0),
       ...getChange(stats.finalResult, previousPeriodStats?.finalResult),
-      subtitle: `Meta: ${formatCurrency(5000)}`,
+      subtitle: `Meta: ${formatCurrency(settings?.monthlyGoal ?? 10000)}`,
     },
     {
       title: 'Taxa de Acerto',
@@ -94,6 +99,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats, trades, timePeriod,
 
   return (
     <div className="space-y-6 p-6">
+      <div className="flex items-center justify-end">
+        {typeof onReload === 'function' && (
+          <Button onClick={onReload} className="px-3 py-2 rounded-[10px] text-sm">
+            Recarregar CSV
+          </Button>
+        )}
+      </div>
       {/* KPIs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, index) => (

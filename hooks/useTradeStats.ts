@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trade, DashboardStats, DetailedStats, ResultBy } from '../types';
 import { parseDuration } from '../utils/formatters';
+import { useSettings } from '../src/context/SettingsContext';
 
 interface TradeStats {
   stats: DashboardStats;
@@ -63,26 +64,14 @@ const createEmptyStats = (initialCapital: number): DetailedStats => ({
     taxaBMf: 0,
     finalResult: 0,
     avgScoreOnWinDays: 0,
+  // required by DetailedStats
+  initialCapital: initialCapital,
+  finalCapital: initialCapital,
+  resultAfter1Loss: 0,
 });
 
 
-const getSettings = () => {
-  try {
-    const savedSettings = localStorage.getItem('appSettings');
-    if (savedSettings) {
-      return JSON.parse(savedSettings);
-    }
-  } catch (error) {
-    console.error("Failed to parse app settings from localStorage", error);
-  }
-  return {
-    initialCapital: 100000,
-    monthlyGoal: 10000,
-    dailyLossLimit: 1000,
-    overtradingThreshold: 2,
-    euphoriaThreshold: 20,
-  };
-};
+// Note: settings are provided by SettingsContext; we will read them from the hook inside useTradeStats
 
 const calculateStats = (trades: Trade[], initialCapital: number): DetailedStats => {
   if (trades.length === 0) {
@@ -368,7 +357,8 @@ const calculateStats = (trades: Trade[], initialCapital: number): DetailedStats 
 
   const payoffBySentiment = sentimentCorrelation.map(s => ({
     sentiment: s.sentiment,
-    avgPayoff: s.totalTrades > 0 && s.avgResult > 0 && (1 - (s.totalResult / s.totalTrades)) > 0 ? (s.avgResult) / (basicStats.avgLoss * -1) : 0,
+    // avgPayoff: normalize by avgLoss (as positive number)
+    avgPayoff: s.totalTrades > 0 && basicStats.avgLoss < 0 ? (s.avgResult) / (basicStats.avgLoss * -1) : 0,
   }));
 
   let performanceAfterLossStreak = 0, performanceAfterWinStreak = 0;
@@ -400,8 +390,19 @@ const calculateStats = (trades: Trade[], initialCapital: number): DetailedStats 
     performanceAfterWinStreak: tradesAfterWinStreak > 0 ? performanceAfterWinStreak / tradesAfterWinStreak : 0,
   };
 
+  // Result after 1 loss (average of the trade immediately following a loss)
+  const resultsAfter1LossArr: number[] = [];
+  for (let i = 0; i < sortedTrades.length - 1; i++) {
+    if (sortedTrades[i].result < 0) resultsAfter1LossArr.push(sortedTrades[i + 1].result);
+  }
+  const resultAfter1Loss = resultsAfter1LossArr.length > 0 ? resultsAfter1LossArr.reduce((a, b) => a + b, 0) / resultsAfter1LossArr.length : 0;
+
+  const finalCapital = initialCapital + finalResult;
+
   return {
       ...basicStats,
+    initialCapital,
+    finalCapital,
       maxWin, maxLoss, bestTrades, worstTrades,
       avgProfitPerTrade: sortedTrades.length > 0 ? grossResult / sortedTrades.length : 0,
       dailyPerformance,
@@ -409,7 +410,8 @@ const calculateStats = (trades: Trade[], initialCapital: number): DetailedStats 
       negativeDays: dailyPerformance.filter(d => d.result < 0).length,
       avgWinDuration: wins.length > 0 ? wins.reduce((sum, t) => sum + parseDuration(t.duration), 0) / wins.length : 0,
       avgLossDuration: losses.length > 0 ? losses.reduce((sum, t) => sum + parseDuration(t.duration), 0) / losses.length : 0,
-      resultAfter2Losses: avgResultOnOvertradingDays,
+  resultAfter1Loss,
+  resultAfter2Losses: avgResultOnOvertradingDays,
       overtradingSessionFrequency,
       totalProfitDevolution,
       profitDevolutionSessionFrequency,
@@ -447,10 +449,10 @@ const calculateStats = (trades: Trade[], initialCapital: number): DetailedStats 
 export const useTradeStats = (trades: Trade[], previousPeriodTrades?: Trade[]): TradeStats => {
   const [stats, setStats] = useState<DashboardStats>(createEmptyStats(0));
   const [detailedStats, setDetailedStats] = useState<DetailedStats>(createEmptyStats(0));
+  const { settings } = useSettings();
 
   useEffect(() => {
-    const settings = getSettings();
-    const initialCapital = settings.initialCapital;
+    const initialCapital = settings?.initialCapital ?? 100000;
 
     const currentPeriodStats = calculateStats(trades, initialCapital);
     const prevPeriodStats = previousPeriodTrades ? calculateStats(previousPeriodTrades, initialCapital) : null;
@@ -459,7 +461,7 @@ export const useTradeStats = (trades: Trade[], previousPeriodTrades?: Trade[]): 
     setStats(currentPeriodStats);
     setDetailedStats(currentPeriodStats);
 
-  }, [trades, previousPeriodTrades]);
+  }, [trades, previousPeriodTrades, settings]);
 
   return { stats, detailedStats };
 };

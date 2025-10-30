@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { listen } from '@tauri-apps/api/event';
 import { Trade } from '../types';
 import { mockTrades } from '../data/mockTrades';
+import Papa from 'papaparse';
 
 const IS_DEV = false;
 
@@ -13,7 +14,8 @@ interface UseTradesResponse {
   refetch: () => void;
 }
 
-export const useTrades = (): UseTradesResponse => {
+// Novo: aceita caminho do CSV (apenas em dev)
+export const useTrades = (csvPath?: string): UseTradesResponse => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +24,21 @@ export const useTrades = (): UseTradesResponse => {
     setIsLoading(true);
     setError(null);
     try {
-      if (IS_DEV) {
-        // Em desenvolvimento, usamos dados mocados após um delay
+      if (IS_DEV && csvPath) {
+        // Em desenvolvimento, lê CSV customizado
+        const res = await fetch(csvPath);
+        if (!res.ok) throw new Error('Erro ao carregar CSV');
+        const csvText = await res.text();
+        const parsed = Papa.parse<any>(csvText, { header: true });
+        // Accept rows that contain at least one expected identifier
+        const rows = parsed.data.filter((row: any) => row && (row.asset || row.symbol || row.openTime || row.date));
+        setTrades(rows as Trade[]);
+      } else if (IS_DEV) {
+        // Fallback: dados mocados
         await new Promise(resolve => setTimeout(resolve, 500));
         setTrades(mockTrades);
       } else {
-        // Em produção, chamamos o backend do Tauri
+        // Em produção, chama backend Tauri
         const fetchedTrades = await invoke<Trade[]>('get_trades');
         setTrades(fetchedTrades);
       }
@@ -52,7 +63,8 @@ export const useTrades = (): UseTradesResponse => {
         unlisten.then(f => f());
       };
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [csvPath]);
 
   return { trades, isLoading, error, refetch: fetchTrades };
 };

@@ -108,3 +108,9 @@ export interface DetailedStats extends DashboardStats {
   finalResult: number;
   avgScoreOnWinDays: number;
 }
+
+export interface User {
+  name: string;
+  email: string;
+  avatar?: string;
+}

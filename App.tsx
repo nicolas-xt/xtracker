@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSettings } from './src/context/SettingsContext';
+
 import { useTrades } from './hooks/useTrades';
 import { useTradeStats } from './hooks/useTradeStats';
+import USMarketDashboard from './components/dashboard/USMarketDashboard';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { Settings as AppSettings } from './components/settings/Settings';
 import { Behavior } from './components/behavior/Behavior';
@@ -11,7 +14,7 @@ import { Button } from './components/ui/button';
 import { User } from './types';
 import { DateRangePickerModal } from './components/ui/DateRangePickerModal';
 
-type View = 'dashboard' | 'trades' | 'behavior' | 'assets' | 'settings';
+type View = 'dashboard' | 'trades' | 'behavior' | 'assets' | 'settings' | 'usmarket';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -23,7 +26,10 @@ export default function App() {
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
 
-  const { trades, isLoading, error } = useTrades();
+  // Read csv path from settings so we can load the correct CSV and allow reloading when requested
+  // useTrades returns a `refetch` function used by the Dashboard "Recarregar CSV" button
+  const { settings: appSettings } = useSettings();
+  const { trades, isLoading, error, refetch } = useTrades(appSettings?.csvPathBR);
 
   const previousPeriodTrades = useMemo(() => {
     if (!trades) return [];
@@ -225,6 +231,7 @@ export default function App() {
   const Header = () => {
     const menuItems = [
       { key: 'dashboard', label: 'Dashboard' },
+      { key: 'usmarket', label: 'Mercado Americano' },
       { key: 'trades', label: 'Histórico' },
       { key: 'behavior', label: 'Comportamento' },
       { key: 'assets', label: 'Ativos' },
@@ -325,6 +332,8 @@ export default function App() {
     switch (currentView) {
       case 'dashboard':
         return detailedStats ? <Dashboard stats={detailedStats} trades={filteredTrades} timePeriod={timePeriod} selectedPeriod={timePeriod} /> : <div className="p-6 text-center text-white">Calculando...</div>;
+      case 'usmarket':
+        return <USMarketDashboard />;
       case 'trades':
         return <TradesHistory trades={filteredTrades} />;
       case 'behavior':
@@ -346,7 +355,11 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-br from-[var(--background)] via-[var(--background-mid)] to-[var(--background-end)] text-white">
       <Header />
       <main className="p-6">
-        {renderCurrentView()}
+        {/* pass refetch to Dashboard so users can force a CSV reload after choosing a file */}
+        {currentView === 'dashboard' && detailedStats
+          ? <Dashboard stats={detailedStats} trades={filteredTrades} timePeriod={timePeriod} selectedPeriod={timePeriod} onReload={refetch} />
+          : renderCurrentView()
+        }
       </main>
       <DateRangePickerModal
         isOpen={isDatePickerVisible}

@@ -29,27 +29,42 @@ export const BestScenarioCard: React.FC<BestScenarioCardProps> = ({ bestScenario
             <h4 className="text-md font-semibold text-white mb-3 flex items-center"><span className="text-[#00D0FF] mr-2">•</span> {dayScenario.dayOfWeek}</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-300">
               {dayScenario.scenario.bestHours.length > 0 && (
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                  <span>Melhores Horários: <span className="font-medium text-white">{dayScenario.scenario.bestHours.map(h => `${h.hour}:00-${h.hour + 1}:00 (${formatPercentage(h.winRate)} | ${formatCurrency(h.averageResult)})`).join(', ')}</span></span>
+                <div className="flex flex-col">
+                  <div className="flex items-center mb-2"><Clock className="w-4 h-4 mr-2 text-gray-400" /><span className="font-medium text-white">Melhores Horários</span></div>
+                  <div className="flex flex-wrap gap-2">
+                    {dayScenario.scenario.bestHours.map((h, i) => (
+                      <div key={i} className="px-3 py-1 bg-[#222] rounded-md border border-gray-600 text-xs">
+                        <div className="font-medium">{h.hour}:00 - {h.hour + 1}:00</div>
+                        <div className="text-gray-400">{formatPercentage(h.winRate)} • {formatCurrency(h.averageResult)} • {h.totalTrades} ops</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+
               {dayScenario.scenario.recommendedPointRange.range !== 'N/A' && (
-                <div className="flex items-center">
-                  <TrendingUp className="w-4 h-4 mr-2 text-gray-400" />
-                  <span>Faixa de Pontuação Recomendada: <span className="font-medium text-white">{dayScenario.scenario.recommendedPointRange.range} ({formatPercentage(dayScenario.scenario.recommendedPointRange.winRate)} | {formatCurrency(dayScenario.scenario.recommendedPointRange.averageResult)})</span></span>
+                <div className="flex flex-col">
+                  <div className="flex items-center mb-2"><TrendingUp className="w-4 h-4 mr-2 text-gray-400" /><span className="font-medium text-white">Faixa de Pontuação Recomendada</span></div>
+                  <div className="text-sm text-gray-300">{dayScenario.scenario.recommendedPointRange.range}</div>
+                  <div className="text-gray-400 text-xs">{formatPercentage(dayScenario.scenario.recommendedPointRange.winRate)} • {formatCurrency(dayScenario.scenario.recommendedPointRange.averagePeak ?? dayScenario.scenario.recommendedPointRange.averageResult)}{dayScenario.scenario.recommendedPointRange.totalTrades ? ` • ${dayScenario.scenario.recommendedPointRange.totalTrades} ops` : ''}</div>
                 </div>
               )}
+
               {dayScenario.scenario.bestFinancialValueRange.range !== 'N/A' && (
-                <div className="flex items-center">
-                  <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
-                  <span>Melhor Faixa de Valor Financeiro: <span className="font-medium text-white">{dayScenario.scenario.bestFinancialValueRange.range} ({formatPercentage(dayScenario.scenario.bestFinancialValueRange.winRate)} | {formatCurrency(dayScenario.scenario.bestFinancialValueRange.averageResult)})</span></span>
+                <div className="flex flex-col">
+                  <div className="flex items-center mb-2"><DollarSign className="w-4 h-4 mr-2 text-gray-400" /><span className="font-medium text-white">Melhor Faixa Financeira</span></div>
+                  <div className="text-sm text-gray-300">{dayScenario.scenario.bestFinancialValueRange.range}</div>
+                  <div className="text-gray-400 text-xs">{formatPercentage(dayScenario.scenario.bestFinancialValueRange.winRate)} • {formatCurrency((dayScenario.scenario.bestFinancialValueRange as any).averagePeak ?? dayScenario.scenario.bestFinancialValueRange.averageResult)}{(dayScenario.scenario.bestFinancialValueRange as any).totalTrades ? ` • ${(dayScenario.scenario.bestFinancialValueRange as any).totalTrades} ops` : ''}</div>
                 </div>
               )}
+
               {dayScenario.scenario.optimalMaxLossTolerance > 0 && (
                 <div className="flex items-center">
                   <AlertTriangle className="w-4 h-4 mr-2 text-red-400" />
-                  <span>Tolerância Máxima de Perda Diária: <span className="font-medium text-red-300">{formatCurrency(dayScenario.scenario.optimalMaxLossTolerance)}</span></span>
+                  <div>
+                    <div className="font-medium text-white">Tolerância Máxima de Perda Diária (média)</div>
+                    <div className="text-red-300">{formatCurrency(dayScenario.scenario.optimalMaxLossTolerance)}</div>
+                  </div>
                 </div>
               )}
             </div>
