@@ -364,6 +364,37 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--background)] via-[var(--background-mid)] to-[var(--background-end)] text-white">
       <Header />
+      {/* Filter bar: account pills and period selector (below header) */}
+      <div className="px-6 mt-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 overflow-x-auto py-2">
+            {/* 'TODOS' pill */}
+            <button onClick={() => { if (typeof setActiveAccount === 'function') setActiveAccount(undefined); }} className={`px-4 py-2 rounded-full text-sm ${appSettings?.activeAccountId ? 'bg-gray-800 text-gray-300' : 'bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white'}`}>
+              TODOS
+            </button>
+            {/* account pills */}
+            {(appSettings?.accounts || []).map(acc => (
+              <button key={acc.id} onClick={() => { if (typeof setActiveAccount === 'function') setActiveAccount(acc.id); }} className={`px-4 py-2 rounded-full text-sm ${appSettings?.activeAccountId === acc.id ? 'bg-gradient-to-r from-[#00D0FF] to-[#0099CC] text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}>
+                {acc.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center bg-gradient-to-br from-[#2A2A2A]/60 to-[#242424]/80 border border-gray-500/25 text-white px-3 py-2 rounded-[12px]">
+              <select value={timePeriod} onChange={handleTimePeriodChange} className="bg-transparent outline-none text-sm">
+                <option value="day">Hoje</option>
+                <option value="week">Esta Semana</option>
+                <option value="month">Este Mês</option>
+                <option value="semester">Este Semestre</option>
+                <option value="year">Este Ano</option>
+                <option value="custom">Personalizado</option>
+              </select>
+              <div className="ml-2 text-xs text-gray-400">Período</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <main className="p-6">
         {/* pass refetch to Dashboard so users can force a CSV reload after choosing a file */}
         {currentView === 'dashboard' && detailedStats
