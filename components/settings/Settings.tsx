@@ -244,7 +244,7 @@ function toBase64(bytes: Uint8Array) {
                 </div>
                 <div className="flex items-center gap-2 ml-4">
                   <button onClick={() => handleSelectCsvForAccount(acc.id)} className="px-3 py-1 bg-gray-800 text-white rounded-md text-sm">Selecionar CSV</button>
-                  <button onClick={() => { if (typeof setActiveAccount === 'function') setActiveAccount(acc.id); else updateSettings({ activeAccountId: acc.id }); }} className={`px-2 py-1 text-sm rounded-md ${contextSettings?.activeAccountId === acc.id ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-300'}`}>{contextSettings?.activeAccountId === acc.id ? 'Selecionada' : 'Selecionar'}</button>
+                  <button onClick={() => { if (typeof setActiveAccount === 'function') setActiveAccount(acc.id); else updateSettings({ activeAccountId: acc.id }); }} className={`px-2 py-1 text-sm rounded-md ${contextSettings?.activeAccountId === acc.id ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-300'}`}>{contextSettings?.activeAccountId === acc.id ? 'Padrão' : 'Definir Padrão'}</button>
                   <button onClick={() => handleRemoveAccount(acc.id)} className="px-2 py-1 text-sm rounded-md bg-red-700 text-white">Excluir</button>
                 </div>
               </div>

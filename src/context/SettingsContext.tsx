@@ -32,12 +32,10 @@ export interface Account {
   csvPath?: string; // path to CSV for this account
 }
 
-const defaultAccount: Account = {
-  id: 'default',
-  name: 'Default',
-  platform: 'br',
-  csvPath: '/data/trades.csv',
-};
+const defaultAccounts: Account[] = [
+  { id: 'br_profit', name: 'BR PROFIT', platform: 'br', csvPath: '' },
+  { id: 'us_black_arrow', name: 'US BLACK ARROW', platform: 'us', csvPath: '' },
+];
 
 const defaultSettings: AppSettings = {
   initialCapital: 100000,
@@ -45,8 +43,8 @@ const defaultSettings: AppSettings = {
   dailyLossLimit: 1000,
   isDarkMode: true,
   monitoredFolder: '/Users/trader/Documents/Trades',
-  accounts: [defaultAccount],
-  activeAccountId: defaultAccount.id,
+  accounts: defaultAccounts,
+  activeAccountId: defaultAccounts[0].id,
 };
 
 const SettingsContext = createContext<SettingsContextValue>({
@@ -72,10 +70,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             migrated.activeAccountId = migrated.activeAccountId ?? accounts[0].id;
           }
         }
-        // ensure at least one account
+        // ensure at least one account: fallback to defaultAccounts
         if (!migrated.accounts || migrated.accounts.length === 0) {
-          migrated.accounts = [defaultAccount];
-          migrated.activeAccountId = migrated.activeAccountId ?? defaultAccount.id;
+          migrated.accounts = defaultAccounts;
+          migrated.activeAccountId = migrated.activeAccountId ?? defaultAccounts[0].id;
         }
         return migrated;
       }
